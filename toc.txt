@@ -1,0 +1,96 @@
+Download from https://github.com/ndas1971/PyQs.git
+file python_advanced_final_reference.zip
+mail-id  ndas1971@gmail.com 
+----------------------------------------
+Day1
+Quick core concepts 
+Modules and Packages
+   Definition and Creating a User Module
+   Byte compilation of Module
+   Invoking Modules - import statement
+   Calling attributes and functions of a Module ­ prefixing modulename
+   Calling specific functions/attributes ­ from .. import statement
+   Creating alias names for methods in import statement
+   Getting the attributs/methods of a module ­ dir()
+   Help on a method ­ help()
+   Reloading a module ­ reload()
+   Knowing the list of installed modules ­ help('modules')
+   Running modules individually as a program - __name__=='__main__'
+   What is a package and Use of a package
+   __init__.py file and its use
+   Relation between packages and modules
+  Installing modules and packages using pip
+Regex in Python
+  Regular expressions in Python ­ the re module
+  Elements of a Python-style regular expression
+  Anchors (Assertions)
+  Literal characters
+  Character groups
+  Counts
+  Alternation
+  Grouping
+  Modifiers
+  re methods - re.match, re.search, res.sub, re.compile, re.purge
+  More examples on regular expressions
+  Some popular regular expressions
+Advanced Data Structures 
+    xml 
+    json 
+    csv 
+Database Connectivity
+   MySQL Database
+   Connection to a database server
+   Drivers for MySQL and other databases
+   The basic principles of databases
+   Using MySQL from Python
+   Executing SQL statements ­ DDL and DML
+   Using SQL select
+   Retrieving the data from SQL table to Python for display
+   Executing Stored Procedures
+Python Standard Library
+  os and os.path
+  sys
+  math, cmath
+  zlib
+  glob
+  datetime, dateutil,time
+  __builtin__
+  string
+  random
+  timeit
+  unittest
+
+Day2 :
+Object Orieted Programming in Python
+  Introduction to OOPs
+  Classes and objects
+  Class attributes, class methods
+  Object attributes, Object methods
+  Constructors and Destructors
+  Inheritance ­ single, multilevel, multiple, hierarchical, hybrid
+  Polymorphism ­ Method overriding and Operator Overloading
+  Private, public and protected variables
+  Dynamic binding and message passing examples
+  Realtime Applications of OOPs
+Multithreading and Multiprocessing
+  Multithreading
+  Multiprocessing
+DataFrames
+  Introduction to Pandas
+  Introduction to numpy
+Day3
+CGI
+Python
+  What is CGI?
+  Creating and Executing CGI scripts in Python
+  Get & Post methods
+  input fields,checkboxes,radiobuttons,textboxes,dropboxes
+   Programs and Examples
+Introduction to Django
+  What is a webframework?
+  Introduction to Django
+  Django Database access in Python
+  Basics of web programming
+  What is Django?
+  MTV pattern
+  Creating a simple blog using Django

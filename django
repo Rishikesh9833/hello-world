@@ -1,0 +1,42 @@
+#Create Virtual Env
+$ pip install virtualenv
+where python.exe
+virtualenv -p C:\Users\admin\Anaconda3\python.exe myproject
+
+myproject\sripts\activate
+
+pip install django
+
+
+#cmd
+django-admin startproject first
+
+#edit setting.py add
+STATICFILES_DIRS=[
+    os.path.join(BASE_DIR,"static")
+]
+TEMPLATES[0]['DIRS'].append(
+    os.path.join(BASE_DIR,"templates"))
+
+#cmd
+mkdir static
+mkdir templates
+
+#cmd
+python manage.py migrate
+python manage.py runserver 8000
+
+#our addition in urls.py
+from django.views.generic import TemplateView
+urlpatterns+=[path('about/', TemplateView.as_view(template_name="about.html"))]
+
+
+python manage.py makemigrations blogs
+python manage.py migrate
+python manage.py shell
+
+import datetime
+from blogs.models import Blog
+Blog.objects.create(title="First blog",content="Some Content",pub_date=datetime.date.today(),author="Me")
+Blog.objects.create(title="Second blog",content="Some Content",pub_date=datetime.date.today(),author="Me")
+Blog.objects.all()

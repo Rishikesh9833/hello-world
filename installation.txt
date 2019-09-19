@@ -1,0 +1,14 @@
+0. Windows machine with min 4GB RAM and min 100 GB harddisk - Windows 7/8/10 
+1. Install anaconda from 
+    https://repo.anaconda.com/archive/Anaconda3-4.2.0-Windows-x86_64.exe
+2. Open a command prompt and put requirements.txt in a dir 
+   Go to that directory and execute 
+   pip install -r requirements.txt 
+3. install mysql connector , select 'No thanks, just start my download.'
+   https://dev.mysql.com/downloads/file/?id=480224
+   Install the MSI 
+4. Install MYSQL server - 5.6 , select 'No thanks, just start my download.'
+   https://dev.mysql.com/downloads/file/?id=480452
+   Install MSI or Check the installation from 
+   https://dev.mysql.com/doc/refman/5.6/en/windows-installation.html
+5. Install notepad++ from https://notepad-plus-plus.org/download/v7.5.9.html
