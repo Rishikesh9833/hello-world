@@ -260,6 +260,95 @@ public class ExcelToJiraTaskCreation {
 
 
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class ExcelToJiraTaskCreation {
+    private static final String JIRA_API_URL = "https://your-jira-instance.com/rest/api/2/issue/";
+
+    public static void main(String[] args) {
+        if (args.length < 1 || args.length % 2 != 0) {
+            System.err.println("Invalid arguments provided!");
+            System.err.println("Usage: java ExcelToJiraTaskCreation <-option1 value1> <-option2 value2> ...");
+            System.exit(1);
+        }
+
+        String excelFilePath = "";
+        String projectKey = "";
+        String issueType = "";
+        String jiraUsername = "";
+        String jiraApiToken = "";
+
+        // Process the command-line arguments
+        for (int i = 0; i < args.length; i += 2) {
+            String option = args[i];
+            String value = args[i + 1];
+
+            switch (option) {
+                case "-excelFilePath":
+                    excelFilePath = value;
+                    break;
+                case "-projectKey":
+                    projectKey = value;
+                    break;
+                case "-issueType":
+                    issueType = value;
+                    break;
+                case "-jiraUsername":
+                    jiraUsername = value;
+                    break;
+                case "-jiraApiToken":
+                    jiraApiToken = value;
+                    break;
+                default:
+                    System.err.println("Invalid option: " + option);
+                    System.exit(1);
+            }
+        }
+
+        try (FileInputStream fis = new FileInputStream(excelFilePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
+
+            for (Row row : sheet) {
+                String summary = row.getCell(0).getStringCellValue();
+                String description = row.getCell(1).getStringCellValue();
+
+                createJiraTask(projectKey, issueType, summary, description, jiraUsername, jiraApiToken);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createJiraTask(String projectKey, String issueType, String summary, String description,
+                                       String jiraUsername, String jiraApiToken) {
+        // Rest of the code remains the same...
+
+        // Replace JIRA_USERNAME and JIRA_API_TOKEN with the user-provided credentials
+        String credentials = jiraUsername + ":" + jiraApiToken;
+        String base64Credentials = java.util.Base64.getEncoder().encodeToString(credentials.getBytes());
+
+        // Add the Authorization header with the user-provided credentials
+        Request request = new Request.Builder()
+                .url(JIRA_API_URL)
+                .post(body)
+                .addHeader("Authorization", "Basic " + base64Credentials)
+                .build();
+
+        // Rest of the code remains the same...
+    }
+}
+
+
+java ExcelToJiraTaskCreation -excelFilePath "path/to/your/excel/file.xlsx" -projectKey "PROJECT_KEY" -issueType "Task" -jiraUsername "your-username" -jiraApiToken "your-api-token"
+
+
 
 
 
