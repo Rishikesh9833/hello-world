@@ -8,20 +8,20 @@ Modules and Packages
    Definition and Creating a User Module
    Byte compilation of Module
    Invoking Modules - import statement
-   Calling attributes and functions of a Module ­ prefixing modulename
-   Calling specific functions/attributes ­ from .. import statement
+   Calling attributes and functions of a Module Â­ prefixing modulename
+   Calling specific functions/attributes Â­ from .. import statement
    Creating alias names for methods in import statement
-   Getting the attributs/methods of a module ­ dir()
-   Help on a method ­ help()
-   Reloading a module ­ reload()
-   Knowing the list of installed modules ­ help('modules')
+   Getting the attributs/methods of a module Â­ dir()
+   Help on a method Â­ help()
+   Reloading a module Â­ reload()
+   Knowing the list of installed modules Â­ help('modules')
    Running modules individually as a program - __name__=='__main__'
    What is a package and Use of a package
    __init__.py file and its use
    Relation between packages and modules
   Installing modules and packages using pip
 Regex in Python
-  Regular expressions in Python ­ the re module
+  Regular expressions in Python Â­ the re module
   Elements of a Python-style regular expression
   Anchors (Assertions)
   Literal characters
@@ -43,7 +43,7 @@ Database Connectivity
    Drivers for MySQL and other databases
    The basic principles of databases
    Using MySQL from Python
-   Executing SQL statements ­ DDL and DML
+   Executing SQL statements Â­ DDL and DML
    Using SQL select
    Retrieving the data from SQL table to Python for display
    Executing Stored Procedures
@@ -67,8 +67,8 @@ Object Orieted Programming in Python
   Class attributes, class methods
   Object attributes, Object methods
   Constructors and Destructors
-  Inheritance ­ single, multilevel, multiple, hierarchical, hybrid
-  Polymorphism ­ Method overriding and Operator Overloading
+  Inheritance Â­ single, multilevel, multiple, hierarchical, hybrid
+  Polymorphism Â­ Method overriding and Operator Overloading
   Private, public and protected variables
   Dynamic binding and message passing examples
   Realtime Applications of OOPs
@@ -93,4 +93,56 @@ Introduction to Django
   Basics of web programming
   What is Django?
   MTV pattern
-  Creating a simple blog using Django
+  Creating a simple blog using 
+
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class JavaScriptInjectionExample {
+    public static void main(String[] args) {
+        // Set the path to the ChromeDriver executable
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+
+        // Create a new instance of the ChromeDriver
+        WebDriver driver = new ChromeDriver();
+
+        // Navigate to the desired webpage
+        driver.get("https://www.example.com");
+
+        // Cast the WebDriver instance to a JavascriptExecutor
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+
+        // Define the JavaScript code to be injected
+        String javascriptCode = 
+            "(() => {\n" +
+            "   // Override the XMLHttpRequest object\n" +
+            "   let originalXhr = window.XMLHttpRequest;\n" +
+            "   function newXHR() {\n" +
+            "       let xhr = new originalXhr();\n" +
+            "       // Interceptor for the 'open' method\n" +
+            "       let originalOpen = xhr.open;\n" +
+            "       xhr.open = function(method, url, async) {\n" +
+            "           console.log('API call:', method, url); // Log the API call information\n" +
+            "           originalOpen.apply(this, arguments);\n" +
+            "       };\n" +
+            "       return xhr;\n" +
+            "   }\n" +
+            "   window.XMLHttpRequest = newXHR;\n" +
+            "})();";
+
+        // Execute the JavaScript code in the current Selenium session
+        jsExecutor.executeScript(javascriptCode);
+
+        // Continue with the rest of your Selenium automation script
+        // ...
+
+        // Close the browser session
+        driver.quit();
+    }
+}
+
+
+
+
+
