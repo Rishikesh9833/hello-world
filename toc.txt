@@ -190,7 +190,73 @@ public class JiraTaskCreationExample {
         String credentials = JIRA_USERNAME + ":" + JIRA_API_TOKEN;
         return java.util.Base64.getEncoder().encodeToString(credentials.getBytes());
     }
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class ExcelToJiraTaskCreation {
+    private static final String JIRA_API_URL = "https://your-jira-instance.com/rest/api/2/issue/";
+    private static final String JIRA_USERNAME = "your-username";
+    private static final String JIRA_API_TOKEN = "your-api-token";
+
+    public static void main(String[] args) {
+        String excelFilePath = "path/to/your/excel/file.xlsx";
+        String projectKey = "PROJECT_KEY";
+        String issueType = "Task";
+
+        try (FileInputStream fis = new FileInputStream(excelFilePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
+
+            for (Row row : sheet) {
+                String summary = row.getCell(0).getStringCellValue();
+                String description = row.getCell(1).getStringCellValue();
+
+                createJiraTask(projectKey, issueType, summary, description);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createJiraTask(String projectKey, String issueType, String summary, String description) {
+        String requestBody = "{\"fields\":{\"project\":{\"key\":\"" + projectKey + "\"}," +
+                "\"issuetype\":{\"name\":\"" + issueType + "\"}," +
+                "\"summary\":\"" + summary + "\"," +
+                "\"description\":\"" + description + "\"}}";
+
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(requestBody, MediaType.parse("application/json"));
+        Request request = new Request.Builder()
+                .url(JIRA_API_URL)
+                .post(body)
+                .addHeader("Authorization", "Basic " + getBase64EncodedCredentials())
+                .build();
+
+        try {
+            Response response = client.newCall(request).execute();
+            if (response.isSuccessful()) {
+                System.out.println("Task created successfully!");
+                System.out.println("Response body: " + response.body().string());
+            } else {
+                System.out.println("Failed to create task. Response code: " + response.code());
+                System.out.println("Response body: " + response.body().string());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String getBase64EncodedCredentials() {
+        String credentials = JIRA_USERNAME + ":" + JIRA_API_TOKEN;
+        return java.util.Base64.getEncoder().encodeToString(credentials.getBytes());
+    }
 }
+
 
 
 
