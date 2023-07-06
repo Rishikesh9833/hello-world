@@ -326,6 +326,47 @@ public class ExcelToJiraTaskCreation {
         }
     }
 
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ListComparison {
+    public static void main(String[] args) {
+        List<String> list1 = new ArrayList<>();
+        list1.add("A");
+        list1.add("B");
+        list1.add("C");
+        list1.add("D");
+
+        List<String> list2 = new ArrayList<>();
+        list2.add("B");
+        list2.add("C");
+        list2.add("E");
+        list2.add("F");
+
+        List<String> extraData = new ArrayList<>();
+        List<String> missingData = new ArrayList<>();
+
+        // Find extra data in list1
+        for (String item : list1) {
+            if (!list2.contains(item)) {
+                extraData.add(item);
+            }
+        }
+
+        // Find missing data in list1
+        for (String item : list2) {
+            if (!list1.contains(item)) {
+                missingData.add(item);
+            }
+        }
+
+        System.out.println("Extra Data in list1: " + extraData);
+        System.out.println("Missing Data in list1: " + missingData);
+    }
+}
+
+
     private static void createJiraTask(String projectKey, String issueType, String summary, String description,
                                        String jiraUsername, String jiraApiToken) {
         // Rest of the code remains the same...
@@ -347,6 +388,9 @@ public class ExcelToJiraTaskCreation {
 
 
 java ExcelToJiraTaskCreation -excelFilePath "path/to/your/excel/file.xlsx" -projectKey "PROJECT_KEY" -issueType "Task" -jiraUsername "your-username" -jiraApiToken "your-api-token"
+
+
+
 
 
 
