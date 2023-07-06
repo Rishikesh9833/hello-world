@@ -1,3 +1,34 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class ListComparison {
+    public static void main(String[] args) {
+        List<String> list1 = new ArrayList<>();
+        list1.add("A");
+        list1.add("B");
+        list1.add("C");
+        list1.add("D");
+
+        List<String> list2 = new ArrayList<>();
+        list2.add("B");
+        list2.add("C");
+        list2.add("E");
+        list2.add("F");
+
+        List<String> extraData = new ArrayList<>(list1);
+        extraData.removeAll(list2);
+
+        List<String> missingData = new ArrayList<>(list2);
+        missingData.removeAll(list1);
+
+        System.out.println("Extra Data in list1: " + extraData);
+        System.out.println("Missing Data in list1: " + missingData);
+    }
+}
+
+
+
+
 Download from https://github.com/ndas1971/PyQs.git
 file python_advanced_final_reference.zip
 mail-id  ndas1971@gmail.com 
