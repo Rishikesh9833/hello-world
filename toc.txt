@@ -1,3 +1,51 @@
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+public class APIMethodsFetcher {
+    public static void main(String[] args) {
+        String apiUrl = "https://api.example.com"; // Replace with the API's base URL
+        String endpoint = "/methods"; // Replace with the API's endpoint that provides method information
+
+        try {
+            HttpClient httpClient = HttpClients.createDefault();
+            HttpGet httpGet = new HttpGet(apiUrl + endpoint);
+
+            HttpResponse response = httpClient.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+
+            if (entity != null) {
+                String jsonString = EntityUtils.toString(entity);
+                // Now, parse the JSON response to get the method names
+                // Depending on the JSON structure, you may use libraries like Jackson or Gson
+                // For simplicity, we'll assume the response contains an array of method names
+                // You can adapt this code based on the actual response format.
+                // Example assuming JSON structure: { "methods": ["method1", "method2", ...] }
+                // JSON parsing code would be something like:
+                // JSONObject jsonObject = new JSONObject(jsonString);
+                // JSONArray methodsArray = jsonObject.getJSONArray("methods");
+
+                // Dummy example:
+                String[] methodsArray = {"method1", "method2", "method3"};
+
+                // Print the method names
+                for (String methodName : methodsArray) {
+                    System.out.println(methodName);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
+
 import java.util.ArrayList;
 import java.util.List;
 
