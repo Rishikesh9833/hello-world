@@ -469,6 +469,58 @@ public class ListComparison {
 java ExcelToJiraTaskCreation -excelFilePath "path/to/your/excel/file.xlsx" -projectKey "PROJECT_KEY" -issueType "Task" -jiraUsername "your-username" -jiraApiToken "your-api-token"
 
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class TarGzCreator {
+    public static void main(String[] args) {
+        String sourceFolder = "/path/to/source/folder";
+        String outputTarGz = "/path/to/output/archive.tar.gz";
+
+        try {
+            FileOutputStream fos = new FileOutputStream(outputTarGz);
+            GzipCompressorOutputStream gzOut = new GzipCompressorOutputStream(fos);
+            TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzOut);
+
+            addFilesToTar(tarOut, sourceFolder, "");
+
+            tarOut.finish();
+            tarOut.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void addFilesToTar(TarArchiveOutputStream tarOut, String filePath, String parent) throws IOException {
+        File file = new File(filePath);
+        String entryName = parent + file.getName();
+
+        TarArchiveEntry tarEntry = new TarArchiveEntry(file, entryName);
+        tarOut.putArchiveEntry(tarEntry);
+
+        if (file.isFile()) {
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    tarOut.write(buffer, 0, bytesRead);
+                }
+                tarOut.closeArchiveEntry();
+            }
+        } else if (file.isDirectory()) {
+            tarOut.closeArchiveEntry();
+            for (File nestedFile : file.listFiles()) {
+                addFilesToTar(tarOut, nestedFile.getAbsolutePath(), entryName + "/");
+            }
+        }
+    }
+}
 
 
 
