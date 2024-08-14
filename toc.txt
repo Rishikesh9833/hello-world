@@ -730,4 +730,156 @@ Including these points will give a more detailed perspective on your contributio
 </body>
 </html>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TestSnap Pro Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        header .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        nav {
+            background-color: #34495e;
+            padding: 10px;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+        .container {
+            display: flex;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #ecf0f1;
+            padding: 20px;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+        .common-details, .environment-selection {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .common-details input, .common-details textarea, .environment-selection select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .quick-snapshot {
+            background-color: #2980b9;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .recent-snapshots {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        footer {
+            background-color: #34495e;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">TestSnap Pro</div>
+</header>
+
+<nav>
+    <a href="#">Dashboard</a>
+    <a href="#">Screenshots</a>
+    <a href="#">Integrations</a>
+    <a href="#">Settings</a>
+    <a href="#">Help</a>
+</nav>
+
+<div class="container">
+    <div class="sidebar">
+        <h3>Applications</h3>
+        <ul>
+            <li><input type="checkbox" checked> App 1</li>
+            <li><input type="checkbox" checked> App 2</li>
+            <li><input type="checkbox"> App 3</li>
+            <li><input type="checkbox"> App 4</li>
+        </ul>
+        <h3>Settings</h3>
+        <ul>
+            <li><a href="#">Preferences</a></li>
+            <li><a href="#">Account</a></li>
+        </ul>
+    </div>
+    
+    <div class="content">
+        <div class="common-details">
+            <h3>Common Details</h3>
+            <form>
+                <input type="text" placeholder="Project Name">
+                <input type="text" placeholder="Test Case ID">
+                <textarea placeholder="Description"></textarea>
+            </form>
+        </div>
+
+        <div class="environment-selection">
+            <h3>Select Environment</h3>
+            <select>
+                <option value="dev">Development</option>
+                <option value="qa">QA</option>
+                <option value="staging">Staging</option>
+                <option value="prod">Production</option>
+            </select>
+        </div>
+
+        <div class="quick-snapshot">Take Quick Snapshot</div>
+        
+        <div class="recent-snapshots">
+            <h3>Recent Snapshots</h3>
+            <ul>
+                <li>Snapshot 1 - App 1, App 2</li>
+                <li>Snapshot 2 - App 3</li>
+                <li>Snapshot 3 - App 1, App 4</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<footer>
+    &copy; 2024 TestSnap Pro. All rights reserved.
+</footer>
+
+</body>
+</html>
+
+
 
