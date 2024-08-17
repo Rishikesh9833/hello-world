@@ -1,0 +1,289 @@
+
+Here’s the full updated project, step by step, with the necessary files and their contents:
+
+Step 1: Set Up Your Development Environment
+Create Project Directory:
+
+Open your terminal or command prompt and create a project directory:
+
+bash
+Copy code
+mkdir test_case_generator
+cd test_case_generator
+Set Up a Virtual Environment:
+
+Create a virtual environment to manage your dependencies:
+
+bash
+Copy code
+python -m venv venv
+Activate the virtual environment:
+
+Windows:
+bash
+Copy code
+venv\Scripts\activate
+MacOS/Linux:
+bash
+Copy code
+source venv/bin/activate
+Install Flask:
+
+Install Flask within the virtual environment:
+
+bash
+Copy code
+pip install Flask
+Step 2: Create Project Files
+Now, you will create the necessary Python files and templates.
+
+Create keyword_mapping.py:
+
+This file contains keyword-to-test-case mappings.
+
+keyword_mapping.py:
+
+python
+Copy code
+KEYWORD_TO_TEST_CASE_TEMPLATE = {
+    ("login", "valid"): {
+        "objective": "Verify that a user can log in with valid credentials.",
+        "preconditions": "The user must be registered in the system.",
+        "steps": [
+            "Navigate to the login page.",
+            "Enter a valid username.",
+            "Enter a valid password.",
+            "Click on the 'Login' button."
+        ],
+        "expected_result": "The user should be successfully logged in and redirected to the homepage or dashboard."
+    },
+    ("registration", "valid"): {
+        "objective": "Verify that a user can register with valid details.",
+        "preconditions": "The user must not be registered in the system.",
+        "steps": [
+            "Navigate to the registration page.",
+            "Enter a valid username.",
+            "Enter a valid password.",
+            "Confirm the password.",
+            "Click on the 'Register' button."
+        ],
+        "expected_result": "The user should be successfully registered and redirected to the login page."
+    },
+    # Add more keyword combinations and their corresponding test case templates
+}
+Create test_case_template.py:
+
+This file defines the TestCaseTemplate class, which handles the structure and formatting of the test cases.
+
+test_case_template.py:
+
+python
+Copy code
+class TestCaseTemplate:
+    def __init__(self, test_case_id, title, objective, preconditions, test_steps, expected_result):
+        self.test_case_id = test_case_id
+        self.title = title
+        self.objective = objective
+        self.preconditions = preconditions
+        self.test_steps = test_steps
+        self.expected_result = expected_result
+
+    def __str__(self):
+        steps = "\n".join(self.test_steps)
+        return (
+            f"{self.title}\n"
+            f"Test Case ID: {self.test_case_id}\n"
+            f"Objective: {self.objective}\n"
+            f"Preconditions: {self.preconditions}\n"
+            f"Test Steps:\n{steps}\n"
+            f"Expected Result: {self.expected_result}\n"
+        )
+Create dynamic_test_case_generator.py:
+
+This file contains the logic for generating test cases based on the input sentence and the keyword matching logic.
+
+dynamic_test_case_generator.py:
+
+python
+Copy code
+from keyword_mapping import KEYWORD_TO_TEST_CASE_TEMPLATE
+from test_case_template import TestCaseTemplate
+import re
+
+class DynamicTestCaseGenerator:
+    def __init__(self):
+        self.test_cases = []
+
+    def extract_keywords(self, sentence):
+        keywords = re.findall(r'\b\w+\b', sentence.lower())
+        return set(keywords)
+
+    def calculate_match_percentage(self, keywords, template_keywords):
+        matched_keywords = len(set(keywords) & set(template_keywords))
+        return (matched_keywords / len(template_keywords)) * 100
+
+    def generate_test_case(self, sentence, test_case_id, test_data=None, threshold=80):
+        keywords = self.extract_keywords(sentence)
+        matched = False
+        case_number = len(self.test_cases) + 1  # Track the case number
+        for keyword_tuple, template in KEYWORD_TO_TEST_CASE_TEMPLATE.items():
+            match_percentage = self.calculate_match_percentage(keywords, keyword_tuple)
+            if match_percentage >= threshold:
+                title = f"Test Case {case_number}: {sentence.capitalize()}"
+                test_case = TestCaseTemplate(
+                    test_case_id=test_case_id,
+                    title=title,
+                    objective=template["objective"],
+                    preconditions=template["preconditions"],
+                    test_steps=template["steps"],
+                    expected_result=template["expected_result"],
+                )
+                self.test_cases.append(test_case)
+                matched = True
+                break
+        
+        if not matched:
+            raise ValueError("No matching test case template found for the given sentence.")
+
+    def save_test_cases_to_file(self, file_name="generated_test_cases.txt"):
+        with open(file_name, 'w') as file:
+            for test_case in self.test_cases:
+                file.write(str(test_case) + "\n\n")
+Create app.py:
+
+This file sets up the Flask web application to handle user input, generate the test cases, and display the results.
+
+app.py:
+
+python
+Copy code
+from flask import Flask, render_template, request
+from dynamic_test_case_generator import DynamicTestCaseGenerator
+
+app = Flask(__name__)
+generator = DynamicTestCaseGenerator()
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        sentence = request.form.get('sentence')
+        test_case_id = 'TC01'  # Example ID; adjust as needed
+
+        try:
+            generator.generate_test_case(
+                sentence=sentence,
+                test_case_id=test_case_id
+            )
+            test_cases = generator.test_cases
+        except ValueError as e:
+            return render_template('index.html', error=str(e))
+
+        return render_template('results.html', test_cases=test_cases)
+
+    return render_template('index.html')
+
+@app.route('/clear', methods=['GET'])
+def clear():
+    generator.test_cases.clear()
+    return render_template('index.html')
+
+if __name__ == "__main__":
+    app.run(debug=True)
+Create HTML Templates
+
+Create a templates directory and add the following HTML files:
+
+index.html:
+
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Generator</title>
+</head>
+<body>
+    <h1>Test Case Generator</h1>
+    <form action="/" method="post">
+        <label for="sentence">Enter Requirement Sentence:</label><br>
+        <input type="text" id="sentence" name="sentence" required><br><br>
+        <input type="submit" value="Generate Test Cases">
+    </form>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
+results.html:
+
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Results</title>
+</head>
+<body>
+    <h1>Generated Test Cases</h1>
+    {% for test_case in test_cases %}
+        <pre>{{ test_case }}</pre>
+    {% endfor %}
+    <br>
+    <a href="/">Generate More Test Cases</a>
+    <br>
+    <a href="/clear">Clear Test Cases</a>
+</body>
+</html>
+Create a static directory for styling (Optional)
+
+You can create a static directory for CSS files if you want to style your application, though it's optional for this project.
+
+Example of a basic style.css:
+
+css
+Copy code
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+Step 3: Run Your Application
+After you have set up all the files, you can run your Flask application:
+
+bash
+Copy code
+python app.py
+Go to http://127.0.0.1:5000/ in your browser to enter a requirement sentence and view the generated test cases.
+
+Sample Output:
+When you enter "login with valid credentials" as input, the generated test case should look like this:
+
+vbnet
+Copy code
+Test Case 1: Login with valid credentials
+Test Case ID: TC01
+Objective: Verify that a user can log in with valid credentials.
+Preconditions: The user must be registered in the system.
+Test Steps:
+Navigate to the login page.
+Enter a valid username.
+Enter a valid password.
+Click on the "Login" button.
+Expected Result: The user should be successfully logged in and redirected to the homepage or dashboard.
+Step 4: Additional Notes
+The "Clear Test Cases" link will clear the generated test cases and return to the index page.
+The keyword-to-test-case mapping can be extended in keyword_mapping.py to cover more scenarios and keywords.
+This is your complete project setup. You can now expand and customize it further according to your needs.
