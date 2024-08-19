@@ -1,0 +1,251 @@
+Install required packages:
+
+bash
+Copy code
+pip install Flask scikit-learn pandas transformers
+Step 2: Create the CSV File for Keyword Mapping
+Create a CSV file named keyword_mapping.csv in your project directory with the following content:
+csv
+Copy code
+Keywords,Objective,Preconditions,Steps,Expected_Result
+valid login,Verify that a user can log in with valid credentials.,The user must be registered in the system.,Navigate to the login page;Enter a valid username;Enter a valid password;Click on the "Login" button.,The user should be successfully logged in and redirected to the homepage or dashboard.
+invalid login,Verify that a user cannot log in with invalid credentials.,The user must not be registered in the system.,Navigate to the login page;Enter an invalid username or password;Click on the "Login" button.,The user should not be logged in and should see an error message.
+Step 3: Implement the AI-Enhanced Test Case Generator
+Create a Python file named dynamic_test_case_generator.py:
+python
+Copy code
+import re
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from test_case_template import TestCaseTemplate
+
+class EnhancedTestCaseGenerator:
+    def __init__(self, csv_file="keyword_mapping.csv"):
+        self.test_cases = []
+        self.case_counter = 1
+        self.df = pd.read_csv(csv_file)
+        self.vectorizer = TfidfVectorizer()
+
+    def preprocess(self, sentence):
+        return ' '.join(re.findall(r'\b\w+\b', sentence.lower()))
+
+    def generate_test_case(self, sentence, threshold=0.8):
+        processed_sentence = self.preprocess(sentence)
+        corpus = self.df['Keywords'].apply(self.preprocess).tolist()
+        corpus.append(processed_sentence)
+
+        tfidf_matrix = self.vectorizer.fit_transform(corpus)
+        similarity_scores = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])
+
+        matching_indices = [i for i, score in enumerate(similarity_scores[0]) if score >= threshold]
+        matched_cases = []
+
+        for i in matching_indices:
+            row = self.df.iloc[i]
+            test_case_id = f"TC{self.case_counter:02d}"
+            title = f"Test Case {self.case_counter}: {sentence.capitalize()}"
+            test_case = TestCaseTemplate(
+                test_case_id=test_case_id,
+                title=title,
+                objective=row['Objective'],
+                preconditions=row['Preconditions'],
+                test_steps=row['Steps'].split(';'),
+                expected_result=row['Expected_Result'],
+            )
+            matched_cases.append(test_case)
+            self.case_counter += 1
+
+        if not matched_cases:
+            raise ValueError("No matching test case template found for the given sentence.")
+        
+        return matched_cases
+
+    def save_test_cases_to_file(self, file_name="generated_test_cases.txt"):
+        with open(file_name, 'w') as file:
+            for test_case in self.test_cases:
+                file.write(str(test_case) + "\n\n")
+Create a Python file named test_case_template.py:
+python
+Copy code
+class TestCaseTemplate:
+    def __init__(self, test_case_id, title, objective, preconditions, test_steps, expected_result):
+        self.test_case_id = test_case_id
+        self.title = title
+        self.objective = objective
+        self.preconditions = preconditions
+        self.test_steps = test_steps
+        self.expected_result = expected_result
+
+    def __str__(self):
+        steps = "\n".join([f"{i+1}. {step}" for i, step in enumerate(self.test_steps)])
+        return (
+            f"{self.title}\n"
+            f"Test Case ID: {self.test_case_id}\n"
+            f"Objective: {self.objective}\n"
+            f"Preconditions: {self.preconditions}\n"
+            f"Test Steps:\n{steps}\n"
+            f"Expected Result: {self.expected_result}"
+        )
+Step 4: Create the Flask Application
+Create a file named app.py:
+python
+Copy code
+from flask import Flask, render_template, request, redirect, url_for
+from dynamic_test_case_generator import EnhancedTestCaseGenerator
+
+app = Flask(__name__)
+generator = EnhancedTestCaseGenerator()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    sentence = request.form['sentence']
+    try:
+        test_cases = generator.generate_test_case(sentence)
+        return render_template('result.html', test_cases=test_cases)
+    except ValueError as e:
+        return render_template('index.html', error=str(e))
+
+@app.route('/clear')
+def clear():
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+Step 5: Create the HTML Templates
+Create a directory named templates.
+
+Create an index.html file inside the templates directory:
+
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        input[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Case Generator</h1>
+        <form action="{{ url_for('generate') }}" method="post">
+            <input type="text" name="sentence" placeholder="Enter your requirement" required>
+            <input type="submit" value="Generate Test Case">
+        </form>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>
+Create a result.html file inside the templates directory:
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Test Cases</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .test-case {
+            text-align: left;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-case h2 {
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generated Test Cases</h1>
+        {% for test_case in test_cases %}
+        <div class="test-case">
+            <h2>{{ test_case.title }}</h2>
+            <
