@@ -846,3 +846,133 @@ Inputting "Generate a test case with negative flow including App2 and App5."
 This should prompt the application to skip asking about the already selected apps and proceed with the rest of the flow.
 
 The chatbot should then generate the test cases and display them in a tabular format on the results 
+
+
+
+from flask import Flask, request, jsonify
+import json
+
+app = Flask(__name__)
+
+# State to hold ongoing conversation details
+chatbot_state = {
+    "request": "",
+    "flow_type": None,
+    "apps": [],
+    "cancel_type": None,
+    "hold_functionality": None,
+    "sample_data_file_types": [],
+    "questions_asked": []
+}
+
+@app.route("/message", methods=["POST"])
+def message():
+    user_input = request.json.get("message")
+    
+    # Process user input and respond accordingly
+    response = handle_user_input(user_input)
+    
+    return jsonify({"response": response})
+
+def handle_user_input(user_input):
+    chatbot_state["request"] = user_input.lower()
+
+    # Detect flow type and apps mentioned
+    detect_flow_type_and_apps(user_input)
+
+    # If the flow type is not detected, ask about it
+    if chatbot_state["flow_type"] is None and "ask_flow_type" not in chatbot_state["questions_asked"]:
+        chatbot_state["questions_asked"].append("ask_flow_type")
+        return "Do you want to check Normal flow, Negative flow, or Both?"
+    
+    # If apps need to be selected, start asking about them
+    if not all_apps_checked():
+        return ask_about_remaining_apps()
+
+    # If cancellation is not determined, ask about it
+    if chatbot_state["cancel_type"] is None and "ask_cancellation" not in chatbot_state["questions_asked"]:
+        chatbot_state["questions_asked"].append("ask_cancellation")
+        return ask_about_cancellation()
+
+    # If Hold functionality is not determined, ask about it
+    if chatbot_state["hold_functionality"] is None and "ask_hold_functionality" not in chatbot_state["questions_asked"]:
+        chatbot_state["questions_asked"].append("ask_hold_functionality")
+        return "Do you want to integrate Hold functionality in the test case?"
+
+    # If sample data is not determined, ask about it
+    if not chatbot_state["sample_data_file_types"] and "ask_sample_data" not in chatbot_state["questions_asked"]:
+        chatbot_state["questions_asked"].append("ask_sample_data")
+        return "Do you want to include trade sample data in the test case?"
+
+    # Generate the test case once all information is gathered
+    return generate_test_case()
+
+def detect_flow_type_and_apps(user_input):
+    user_input = user_input.lower()
+
+    # Detect flow type
+    if "normal" in user_input:
+        chatbot_state["flow_type"] = "normal"
+    elif "negative" in user_input:
+        chatbot_state["flow_type"] = "negative"
+    elif "both" in user_input:
+        chatbot_state["flow_type"] = "both"
+
+    # Detect apps mentioned in user input
+    apps = ["app1", "app2", "app3", "app4", "app5", "app6", "app7"]
+    for app in apps:
+        if app in user_input:
+            chatbot_state["apps"].append(app.capitalize())
+
+def all_apps_checked():
+    all_apps = ["App1", "App2", "App4", "App5", "App6", "App7"]
+    return all(app in chatbot_state["apps"] for app in all_apps)
+
+def ask_about_remaining_apps():
+    remaining_apps = ["App1", "App2", "App4", "App5", "App6", "App7"]
+    for app in remaining_apps:
+        if app not in chatbot_state["apps"]:
+            chatbot_state["questions_asked"].append(f"ask_{app}")
+            return f"Do you want to include {app} in the test case?"
+    
+    # If all apps have been checked, proceed to next step
+    return ask_about_cancellation()
+
+def ask_about_cancellation():
+    if "cancel" in chatbot_state["request"] or chatbot_state["flow_type"] == "negative":
+        return "Is it System Cancel or Manual Cancel?"
+    else:
+        return "Do you want to check Cancellation?"
+
+def generate_test_case():
+    # Example logic to generate a test case
+    test_case = {
+        "TCID": "001",
+        "Test Summary": f"Test case for {chatbot_state['flow_type']} flow with {', '.join(chatbot_state['apps'])}",
+        "Precondition": "Ensure the system is up and running.",
+        "Test Steps": "1. Perform the necessary steps...",
+        "Expected Result": "The system should behave as expected."
+    }
+    
+    # Clear state after generating the test case
+    clear_state()
+    
+    # Return test case formatted as a string
+    return format_test_case_as_string(test_case)
+
+def format_test_case_as_string(test_case):
+    result = "\n".join([f"{key}: {value}" for key, value in test_case.items()])
+    return result
+
+def clear_state():
+    chatbot_state["request"] = ""
+    chatbot_state["flow_type"] = None
+    chatbot_state["apps"] = []
+    chatbot_state["cancel_type"] = None
+    chatbot_state["hold_functionality"] = None
+    chatbot_state["sample_data_file_types"] = []
+    chatbot_state["questions_asked"] = []
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
