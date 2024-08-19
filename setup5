@@ -659,3 +659,190 @@ Copy code
     </div>
 </body>
 </html>
+
+
+
+To ensure that the chatbot logic handles cases where the user has already specified apps in their initial request, you can implement checks to see if specific apps are already selected in the chatbot_state. If they are, the system should skip asking the user about those apps and proceed to the next step.
+
+Updated Test Case Generation Logic
+Here’s how you can add the logic to check if apps are already selected:
+
+1. Update generate_test_case Function
+Modify the generate_test_case function to incorporate checks for already selected apps.
+
+python
+Copy code
+def generate_test_case():
+    test_cases = []
+
+    # Basic structure for test case
+    test_case_template = {
+        "TCID": "",
+        "Test_Summary": "",
+        "Preconditions": "",
+        "Test_Steps": [],
+        "Expected_Result": ""
+    }
+
+    # Generate test case ID
+    tc_id = 1
+
+    # Check for flow type
+    if chatbot_state["flow_type"] in ["normal", "both"]:
+        # Normal flow test case
+        normal_test_case = test_case_template.copy()
+        normal_test_case["TCID"] = f"TC{tc_id:03}"
+        normal_test_case["Test_Summary"] = "Normal Flow Test Case"
+        normal_test_case["Preconditions"] = "Ensure the system is in a stable state."
+        
+        # Add steps based on app selection
+        normal_test_case["Test_Steps"] = generate_steps_for_apps(chatbot_state["apps"])
+        
+        # Hold functionality
+        if chatbot_state["hold"]:
+            normal_test_case["Test_Steps"].extend(generate_hold_steps())
+        
+        # Cancellation
+        if chatbot_state["cancel_type"]:
+            normal_test_case["Test_Steps"].extend(generate_cancellation_steps(chatbot_state["cancel_type"]))
+        
+        # Expected result
+        normal_test_case["Expected_Result"] = "The test case should pass without any errors."
+
+        test_cases.append(normal_test_case)
+        tc_id += 1
+
+    if chatbot_state["flow_type"] in ["negative", "both"]:
+        # Negative flow test case
+        negative_test_case = test_case_template.copy()
+        negative_test_case["TCID"] = f"TC{tc_id:03}"
+        negative_test_case["Test_Summary"] = "Negative Flow Test Case"
+        negative_test_case["Preconditions"] = "Ensure the system is in a stable state."
+        
+        # Add steps based on app selection
+        negative_test_case["Test_Steps"] = generate_steps_for_apps(chatbot_state["apps"], negative=True)
+        
+        # Hold functionality
+        if chatbot_state["hold"]:
+            negative_test_case["Test_Steps"].extend(generate_hold_steps())
+        
+        # Cancellation
+        if chatbot_state["cancel_type"]:
+            negative_test_case["Test_Steps"].extend(generate_cancellation_steps(chatbot_state["cancel_type"]))
+        
+        # Expected result
+        negative_test_case["Expected_Result"] = "The system should handle errors gracefully and produce appropriate error messages."
+
+        test_cases.append(negative_test_case)
+
+    return test_cases
+
+def generate_steps_for_apps(apps, negative=False):
+    steps = []
+    all_apps = ['App1', 'App2', 'App3', 'App4', 'App5', 'App6', 'App7']
+
+    for app in all_apps:
+        if app in apps:
+            if negative:
+                steps.append(f"Attempt to create a trade in {app} with invalid data and verify error handling.")
+            else:
+                steps.append(f"Create a trade in {app} and verify the creation process.")
+    
+    return steps
+
+def generate_hold_steps():
+    return ["Hold the trade and verify that it is held successfully in all applicable systems."]
+
+def generate_cancellation_steps(cancel_type):
+    if cancel_type == "system":
+        return ["Cancel the trade using the system API and verify that it is cancelled in all systems."]
+    else:
+        return ["Cancel the trade manually in the application and verify that it is cancelled in all systems."]
+2. Update the Chatbot Flow to Check for Selected Apps
+Modify the chatbot flow to skip asking about apps that have already been selected:
+
+python
+Copy code
+def handle_user_input(user_input):
+    if "generate" in user_input.lower():
+        # Start the process of generating a test case
+        chatbot_state["request"] = user_input
+        detect_flow_type()
+        detect_selected_apps(user_input)
+        ask_about_flow_type()
+    # Other logic to handle additional inputs, greetings, etc.
+
+def detect_selected_apps(user_input):
+    apps = ["App1", "App2", "App3", "App4", "App5", "App6", "App7"]
+    for app in apps:
+        if app.lower() in user_input.lower():
+            chatbot_state["apps"].append(app)
+3. Enhance ask_about_flow_type to Skip Already Selected Apps
+python
+Copy code
+def ask_about_flow_type():
+    if "flow_type" not in chatbot_state:
+        flow_type = input("Do you want to check Normal flow, Negative flow, or Both?")
+        chatbot_state["flow_type"] = flow_type.lower()
+        
+        if chatbot_state["apps"]:
+            ask_about_remaining_apps()
+        else:
+            ask_about_apps()
+
+def ask_about_apps():
+    apps_to_check = ["App1", "App2", "App4", "App5", "App6", "App7"]
+
+    for app in apps_to_check:
+        if app not in chatbot_state["apps"]:
+            user_input = input(f"Do you want to include {app} in the test case?")
+            if user_input.lower() in ["yes", "y"]:
+                chatbot_state["apps"].append(app)
+    
+    if chatbot_state["flow_type"] == "negative":
+        ask_about_app3()
+
+    ask_about_cancellation()
+
+def ask_about_remaining_apps():
+    apps_to_check = ["App1", "App2", "App4", "App5", "App6", "App7"]
+    remaining_apps = [app for app in apps_to_check if app not in chatbot_state["apps"]]
+
+    for app in remaining_apps:
+        user_input = input(f"Do you want to include {app} in the test case?")
+        if user_input.lower() in ["yes", "y"]:
+            chatbot_state["apps"].append(app)
+
+    if chatbot_state["flow_type"] == "negative":
+        ask_about_app3()
+
+    ask_about_cancellation()
+
+def ask_about_app3():
+    user_input = input("Do you want to include App3 in the test case?")
+    if user_input.lower() in ["yes", "y"]:
+        chatbot_state["apps"].append("App3")
+
+def ask_about_cancellation():
+    if "cancel" in chatbot_state["request"].lower() or chatbot_state["flow_type"] == "negative":
+        cancel_type = input("Is it System Cancel or Manual Cancel?")
+        chatbot_state["cancel_type"] = cancel_type.lower()
+    else:
+        cancel_option = input("Do you want to check Cancellation?")
+        if cancel_option.lower() in ["yes", "y"]:
+            cancel_type = input("Is it System Cancel or Manual Cancel?")
+            chatbot_state["cancel_type"] = cancel_type.lower()
+
+    if chatbot_state["flow_type"] == "both":
+        generate_test_case()
+4. Ensure All Logic Is Integrated
+Make sure all methods are properly integrated into the overall flow. This code ensures that the chatbot intelligently skips asking redundant questions about already selected apps and proceeds with generating the test cases based on user inputs.
+
+5. Test the Application
+Finally, run your Flask application and test it by inputting different scenarios. For example:
+
+Inputting "Generate a test case for App1 with normal flow."
+Inputting "Generate a test case with negative flow including App2 and App5."
+This should prompt the application to skip asking about the already selected apps and proceed with the rest of the flow.
+
+The chatbot should then generate the test cases and display them in a tabular format on the results 
