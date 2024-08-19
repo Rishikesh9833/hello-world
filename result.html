@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Generated Test Cases</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Case ID</th>
+                    <th>Title</th>
+                    <th>Objective</th>
+                    <th>Preconditions</th>
+                    <th>Test Steps</th>
+                    <th>Expected Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for test_case in test_cases %}
+                <tr>
+                    <td>{{ test_case.test_case_id }}</td>
+                    <td>{{ test_case.title }}</td>
+                    <td>{{ test_case.objective }}</td>
+                    <td>{{ test_case.preconditions }}</td>
+                    <td>
+                        <ul>
+                            {% for step in test_case.test_steps %}
+                                <li>{{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ test_case.expected_result }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <a href="/">Generate More Test Cases</a>
+        <br>
+        <a href="/clear">Clear Test Cases</a>
+    </div>
+</body>
+</html>
