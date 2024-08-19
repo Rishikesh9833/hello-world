@@ -1,0 +1,220 @@
+Here’s the complete code for the interactive AI-based test case generator web application with the requested changes, including handling variations in English and spelling mistakes:
+
+1. JSON Files
+Create two JSON files to store prompts and data.
+
+prompts.json
+
+json
+Copy code
+{
+  "base_prompt": "Generate test cases based on the following details:",
+  "flow_type": "Flow Type: {flow_type}",
+  "app_checks": "Applications to check: {app_checks}",
+  "cancellation": "Cancellation Type: {cancellation}",
+  "hold_functionality": "Hold Functionality: {hold_functionality}",
+  "special_flow": "Special Flow Integration: {special_flow}",
+  "file_type": "File Types: {file_type}"
+}
+data.json
+
+json
+Copy code
+{
+  "flow_types": ["Normal", "Negative", "Both"],
+  "applications": ["App1", "App2", "App3", "App4", "App5", "App6", "App7"],
+  "cancellation_types": ["System Cancel", "Manual Cancel"],
+  "file_types": ["CSV", "Excel", "JSON", "XML"]
+}
+2. CSV File
+Ensure you have a CSV file named test_steps.csv with the following structure:
+
+test_steps.csv
+
+csv
+Copy code
+Application Name,Functionality,Test Case ID,Flow Type,Step Order,Step Description,Flow Sequence
+API,Trade Creation,TC1,Normal,1,Create a trade using API.,1
+App1,Trade Validation,TC1,Normal,2,Validate the trade creation in App1.,2
+App2,Trade Validation,TC1,Normal,2,Validate the trade creation in App2.,2
+App3,Message Validation,TC1,Normal,3,Validate the output message from App3.,3
+App4,Downstream Check,TC1,Normal,4,Check if the trade is sent to the downstream system in App4.,4
+App4,Trade Processing,TC1,Normal,5,Validate if the trade is processed correctly in App4.,5
+App5,Downstream Check,TC1,Normal,6,Check if the trade is sent to the downstream system in App5.,6
+App5,Trade Processing,TC1,Normal,7,Validate if the trade is processed correctly in App5.,7
+App6,Downstream Check,TC1,Normal,8,Check if the trade is sent to the downstream system in App6.,8
+App6,Trade Processing,TC1,Normal,9,Validate if the trade is processed correctly in App6.,9
+App7,Downstream Check,TC1,Normal,10,Check if the trade is sent to the downstream system in App7.,10
+App7,Trade Processing,TC1,Normal,11,Validate if the trade is processed correctly in App7.,11
+API,Trade Cancellation,TC2,Normal,1,Send a request to cancel the trade using API.,1
+App1,Cancellation Validation,TC2,Normal,2,Validate the trade cancellation in App1.,2
+App2,Cancellation Validation,TC2,Normal,2,Validate the trade cancellation in App2.,2
+App3,Cancellation Message Validation,TC2,Normal,3,Validate the cancellation message from App3.,3
+App4,Cancellation Check,TC2,Normal,4,Check if the trade cancellation is processed in App4.,4
+App4,Cancellation Processing,TC2,Normal,5,Validate if the trade cancellation is processed correctly in App4.,5
+App5,Cancellation Check,TC2,Normal,6,Check if the trade cancellation is processed in App5.,6
+App5,Cancellation Processing,TC2,Normal,7,Validate if the trade cancellation is processed correctly in App5.,7
+App6,Cancellation Check,TC2,Normal,8,Check if the trade cancellation is processed in App6.,8
+App6,Cancellation Processing,TC2,Normal,9,Validate if the trade cancellation is processed correctly in App6.,9
+App7,Cancellation Check,TC2,Normal,10,Check if the trade cancellation is processed in App7.,10
+App7,Cancellation Processing,TC2,Normal,11,Validate if the trade cancellation is processed correctly in App7.,11
+API,Hold Timer Set,TC3,Special,1,Set a hold timer before creating the trade.,1
+API,Trade Creation,TC3,Special,2,Create a trade using API.,2
+App1,Hold Validation,TC3,Special,3,Check if the trade is on hold in App1.,3
+App1,Hold Timer Expiry Check,TC3,Special,4,Verify that the hold timer has expired.,4
+App4,Downstream Check,TC3,Special,5,Check if the trade is released to the downstream system in App4.,5
+App4,Trade Processing,TC3,Special,6,Validate if the trade is processed correctly in App4.,6
+API,Trade Creation,TC4,Negative,1,Create a trade using API.,1
+App1,In-Repair Validation,TC4,Negative,2,Validate that the trade is in a repair state in App1.,2
+API,Repair Trade,TC4,Negative,3,Perform repair on the trade using API.,3
+API,Approve Trade,TC4,Negative,4,Approve the repaired trade using API.,4
+App1,Repair Approval Check,TC4,Negative,5,Validate that the trade is approved in App1.,5
+App2,Repair Approval Check,TC4,Negative,6,Validate that the trade is approved in App2.,6
+App3,Repair Approval Check,TC4,Negative,7,Validate that the trade is approved in App3.,7
+App4,Downstream Check,TC4,Negative,8,Check if the trade is sent to the downstream system in App4.,8
+App4,Trade Processing,TC4,Negative,9,Validate if the trade is processed correctly in App4.,9
+App5,Downstream Check,TC4,Negative,10,Check if the trade is sent to the downstream system in App5.,10
+App5,Trade Processing,TC4,Negative,11,Validate if the trade is processed correctly in App5.,11
+App6,Downstream Check,TC4,Negative,12,Check if the trade is sent to the downstream system in App6.,12
+App6,Trade Processing,TC4,Negative,13,Validate if the trade is processed correctly in App6.,13
+App7,Downstream Check,TC4,Negative,14,Check if the trade is sent to the downstream system in App7.,14
+App7,Trade Processing,TC4,Negative,15,Validate if the trade is processed correctly in App7.,15
+3. Flask Application Code
+app.py
+
+python
+Copy code
+from flask import Flask, request, jsonify
+import pandas as pd
+import json
+from fuzzywuzzy import process, fuzz
+
+app = Flask(__name__)
+
+# Load test steps data
+test_steps_df = pd.read_csv('test_steps.csv')
+
+# Load prompts and data from JSON files
+with open('prompts.json', 'r') as f:
+    prompts = json.load(f)
+
+with open('data.json', 'r') as f:
+    data = json.load(f)
+
+# Store conversation state
+conversation_state = {}
+
+@app.route('/message', methods=['POST'])
+def message():
+    user_input = request.json.get('message', '')
+    session_id = request.json.get('session_id', 'default')
+
+    if session_id not in conversation_state:
+        conversation_state[session_id] = {}
+
+    state = conversation_state[session_id]
+
+    # Handle user input and generate response
+    response = handle_user_input(user_input, state)
+
+    # Generate test cases if all data is collected
+    if 'test_case' in state:
+        prompt = generate_prompt(state)
+        test_cases = generate_test_cases(state)
+        response = {
+            "test_case": test_cases,
+            "details": state
+        }
+        del conversation_state[session_id]
+
+    return jsonify(response)
+
+def handle_user_input(user_input, state):
+    user_input = user_input.lower().strip()
+    
+    # Define a function to perform fuzzy matching
+    def fuzzy_match(query, choices, threshold=80):
+        match, score = process.extractOne(query, choices, scorer=fuzz.partial_ratio)
+        return match if score >= threshold else None
+
+    if 'flow_type' not in state:
+        # Determine flow type from user input using fuzzy matching
+        flow_type = fuzzy_match(user_input, data['flow_types'])
+        if flow_type:
+            state['flow_type'] = flow_type
+            return "Which applications would you like to check? (e.g., App1, App2, App3, etc.)"
+        return "Do you want to check Normal flow, Negative flow, or Both?"
+
+    elif 'app_checks' not in state:
+        # Determine applications from user input using fuzzy matching
+        selected_apps = [app for app in data['applications'] if fuzzy_match(user_input, [app])]
+        if selected_apps:
+            state['app_checks'] = selected_apps
+            return "Do you want to include cancellation steps? (yes/no)"
+        return "Which applications would you like to check? (e.g., App1, App2, App3, etc.)"
+
+    elif 'cancellation' not in state and ('cancel' in user_input or 'cancellation' in user_input):
+        # Determine cancellation type from user input using fuzzy matching
+        cancel_type = fuzzy_match(user_input, data['cancellation_types'])
+        if cancel_type:
+            state['cancellation'] = cancel_type
+            return "Do you want to integrate Hold functionality in the test case? (yes/no)"
+        return "Is it System Cancel or Manual Cancel?"
+
+    elif 'hold_functionality' not in state and 'hold' in user_input:
+        state['hold_functionality'] = 'Hold'
+        return "Do you want to integrate elements from Normal flow and Negative flow into the Special flow? (yes/no)"
+    
+    elif 'special_flow' not in state and 'special' in user_input:
+        state['special_flow'] = 'Special'
+        return "Which file types do you want to check for the sample data? Options: CSV, Excel, JSON, XML."
+
+    elif 'file_type' not in state:
+        # Determine file types from user input using fuzzy matching
+        selected_file_types = [file_type for file_type in data['file_types'] if fuzzy_match(user_input, [file_type])]
+        if selected_file_types:
+            state['file_type'] = selected_file_types
+            return "You selected file type(s): " + ", ".join(selected_file_types)
+        return "Which file types do you want to check for the sample data? Options: CSV, Excel, JSON, XML."
+
+    else:
+        return "All necessary information has been collected."
+
+def generate_prompt(state):
+    prompt_parts = [prompts["base_prompt"]]
+    
+    for key, template in prompts.items():
+        if key in state:
+            prompt_parts.append(template.format(**{key: state[key]}))
+
+    return " ".join(prompt_parts)
+
+def generate_test_cases(state):
+    flow_type = state.get('flow_type', 'Normal').capitalize()
+    app_checks = state.get('app_checks', [])
+    cancellation = state.get('cancellation', '')
+    hold_functionality = state.get('hold_functionality', '')
+    special_flow = state.get('special_flow', '')
+    file_type = state.get('file_type', [])
+
+    # Logic to generate test cases based on state (example)
+    # This part should be implemented based on your requirements.
+    # For example purposes, we will just return a placeholder text.
+    return f"Generated test cases for {flow_type} flow with applications: {', '.join(app_checks)}, cancellation: {cancellation}, hold: {hold_functionality}, special flow: {special_flow}, file types: {', '.join(file_type)}."
+
+if __name__ == '__main__':
+    app.run(debug=True)
+Explanation of the Updated Code
+Fuzzy Matching:
+
+Integrated fuzzywuzzy to handle variations and spelling mistakes in user input.
+JSON Configuration:
+
+Used JSON files (prompts.json and data.json) to store and manage prompts and data, allowing for dynamic updates without changing the code.
+Dynamic User Input Handling:
+
+handle_user_input function utilizes fuzzy matching to determine user intent and handle various inputs flexibly.
+Test Case Generation:
+
+generate_test_cases function provides a placeholder for generating test cases based on the state collected from user inputs.
+By following these changes, the application can better understand variations and spelling mistakes, making it more user-friendly and robust.
