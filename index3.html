@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { border: 1px solid #ddd; padding: 10px; width: 300px; height: 400px; overflow-y: scroll; }
+        .message { margin-bottom: 10px; }
+        .message.user { text-align: right; }
+        .message.bot { text-align: left; }
+        #input { width: 300px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Test Case Generator</h1>
+    <div id="chat"></div>
+    <input type="text" id="input" placeholder="Type your message here..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const chatDiv = document.getElementById('chat');
+        const inputBox = document.getElementById('input');
+        const sessionID = 'default'; // Update with session management if needed
+
+        function appendMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = inputBox.value;
+            if (message.trim() === '') return;
+
+            appendMessage(message, 'user');
+            inputBox.value = '';
+
+            fetch('/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, session_id: sessionID })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.test_case) {
+                    appendMessage('Generated test cases:\n' + JSON.stringify(data.test_case, null, 2), 'bot');
+                } else {
+                    appendMessage(data, 'bot');
+                }
+            });
+        }
+
+        inputBox.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
