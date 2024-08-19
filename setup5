@@ -432,3 +432,230 @@ Copy code
 python app.py
 Open your browser and navigate to http://127.0.0.1:5000.
 This setup will provide a chatbot interface that interacts with users, generates test cases based on input, and displays results in a tabular format.
+
+
+1. Test Case Generation Logic in chat_logic.py
+You can add the logic to generate test cases based on the user's input stored in chatbot_state. This will involve selecting steps based on the flow type, application selections, and whether to include cancellation and hold functionality.
+
+python
+Copy code
+def generate_test_case():
+    test_cases = []
+
+    # Basic structure for test case
+    test_case_template = {
+        "TCID": "",
+        "Test_Summary": "",
+        "Preconditions": "",
+        "Test_Steps": [],
+        "Expected_Result": ""
+    }
+
+    # Generate test case ID
+    tc_id = 1
+
+    # Generate test cases based on flow type
+    if chatbot_state["flow_type"] in ["normal", "both"]:
+        # Normal flow test case
+        normal_test_case = test_case_template.copy()
+        normal_test_case["TCID"] = f"TC{tc_id:03}"
+        normal_test_case["Test_Summary"] = "Normal Flow Test Case"
+        normal_test_case["Preconditions"] = "Ensure the system is in a stable state."
+        
+        # Add steps based on app selection
+        normal_test_case["Test_Steps"] = generate_steps_for_apps(chatbot_state["apps"])
+        
+        # Hold functionality
+        if chatbot_state["hold"]:
+            normal_test_case["Test_Steps"].extend(generate_hold_steps())
+        
+        # Cancellation
+        if chatbot_state["cancel_type"]:
+            normal_test_case["Test_Steps"].extend(generate_cancellation_steps(chatbot_state["cancel_type"]))
+        
+        # Expected result
+        normal_test_case["Expected_Result"] = "The test case should pass without any errors."
+
+        test_cases.append(normal_test_case)
+        tc_id += 1
+
+    if chatbot_state["flow_type"] in ["negative", "both"]:
+        # Negative flow test case
+        negative_test_case = test_case_template.copy()
+        negative_test_case["TCID"] = f"TC{tc_id:03}"
+        negative_test_case["Test_Summary"] = "Negative Flow Test Case"
+        negative_test_case["Preconditions"] = "Ensure the system is in a stable state."
+        
+        # Add steps based on app selection
+        negative_test_case["Test_Steps"] = generate_steps_for_apps(chatbot_state["apps"], negative=True)
+        
+        # Hold functionality
+        if chatbot_state["hold"]:
+            negative_test_case["Test_Steps"].extend(generate_hold_steps())
+        
+        # Cancellation
+        if chatbot_state["cancel_type"]:
+            negative_test_case["Test_Steps"].extend(generate_cancellation_steps(chatbot_state["cancel_type"]))
+        
+        # Expected result
+        negative_test_case["Expected_Result"] = "The system should handle errors gracefully and produce appropriate error messages."
+
+        test_cases.append(negative_test_case)
+
+    return test_cases
+
+def generate_steps_for_apps(apps, negative=False):
+    steps = []
+    for app in apps:
+        if negative:
+            steps.append(f"Attempt to create a trade in {app} with invalid data and verify error handling.")
+        else:
+            steps.append(f"Create a trade in {app} and verify the creation process.")
+    return steps
+
+def generate_hold_steps():
+    return ["Hold the trade and verify that it is held successfully in all applicable systems."]
+
+def generate_cancellation_steps(cancel_type):
+    if cancel_type == "system":
+        return ["Cancel the trade using the system API and verify that it is cancelled in all systems."]
+    else:
+        return ["Cancel the trade manually in the application and verify that it is cancelled in all systems."]
+2. CSS for the Chatbot Interface - styles.css
+This CSS file will ensure that your chatbot interface is clean, modern, and responsive.
+
+css
+Copy code
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.chat-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    width: 400px;
+    padding: 20px;
+    text-align: center;
+}
+
+.chat-container h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.chat-box {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+    height: 150px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    text-align: left;
+}
+
+.chat-box p {
+    margin: 0;
+    padding: 5px 0;
+}
+
+form {
+    display: flex;
+    justify-content: space-between;
+}
+
+input[type="text"] {
+    width: 75%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+button {
+    width: 20%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background-color: #007bff;
+    color: white;
+}
+3. Test Cases Integration in result.html
+You can display the generated test cases in a tabular format using the result.html template.
+
+html
+Copy code
+<!-- result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Case Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Generated Test Cases</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>TCID</th>
+                    <th>Test Summary</th>
+                    <th>Preconditions</th>
+                    <th>Test Steps</th>
+                    <th>Expected Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for test_case in test_cases %}
+                <tr>
+                    <td>{{ test_case['TCID'] }}</td>
+                    <td>{{ test_case['Test_Summary'] }}</td>
+                    <td>{{ test_case['Preconditions'] }}</td>
+                    <td>
+                        <ul>
+                            {% for step in test_case['Test_Steps'] %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ test_case['Expected_Result'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
