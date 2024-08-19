@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
+    <div class="results-container">
         <h1>Generated Test Cases</h1>
         <table>
             <thead>
@@ -40,9 +40,9 @@
             </tbody>
         </table>
         <br>
-        <a href="/">Generate More Test Cases</a>
+        <a class="action-link" href="/">Generate More Test Cases</a>
         <br>
-        <a href="/clear">Clear Test Cases</a>
+        <a class="action-link" href="/clear">Clear Test Cases</a>
     </div>
 </body>
 </html>
