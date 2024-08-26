@@ -1,3 +1,11 @@
+Adherence to Process: I consistently followed established processes, ensuring efficiency and quality in my work. I also provided feedback for potential process improvements.
+
+2. Business Priorities: I focused on tasks that aligned with key business objectives, adapting to changing priorities to support the team's goals effectively.
+
+3. Non-BAU People Priorities: I prioritized non-BAU initiatives by collaborating with teams to address emerging needs and challenges, ensuring that these tasks were managed alongside regular responsibilities.
+
+4. Tech Priorities: I stayed aligned with tech priorities by engaging with new tools and technologies that support our goals, contributing to the ongoing improvement of our technical capabilities.
+
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
