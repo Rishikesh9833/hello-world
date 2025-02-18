@@ -1,0 +1,135 @@
+import java.io.*;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FeatureFileConverter {
+
+    public static void main(String[] args) {
+        String inputFilePath = "path/to/old/feature/file.feature";
+        String outputFilePath = "path/to/new/feature/file.feature";
+        String csvFilePath = "path/to/new_steps.csv";
+        
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(inputFilePath));
+            List<String> newSteps = readNewSteps(csvFilePath);
+            List<String> updatedLines = new ArrayList<>();
+            boolean isDataTable = false;
+            List<String[]> dataTable = new ArrayList<>();
+            
+            for (String line : lines) {
+                // Rule 1: Preserve "user trigger bm tc" with its data table
+                if (line.contains("user trigger bm tc")) {
+                    updatedLines.add(line);
+                    isDataTable = true;
+                    continue;
+                }
+                if (isDataTable) {
+                    if (line.trim().startsWith("|")) {
+                        updatedLines.add(line);
+                        continue;
+                    } else {
+                        isDataTable = false;
+                    }
+                }
+                
+                // Rule 2: Change "verify 'vet' trade status" 
+                // to "verify trade status in database" 
+                // and move "Vet" to SYSTEM column
+                if (line.contains("verify 'vet' trade status")) {
+                    updatedLines.add("verify trade status in database");
+                    updatedLines.add("| SYSTEM |");
+                    updatedLines.add("| Vet    |");
+                    continue;
+                }
+                
+                // Rule 3: Add new steps from CSV after "verify trade status in database"
+                if (line.contains("verify trade status in database")) {
+                    updatedLines.add(line);
+                    updatedLines.addAll(newSteps);
+                    continue;
+                }
+                
+                // Rule 4: Change "query redwing message out using below query parameter"
+                // to "fetch redwing message" and convert data table to horizontal
+                if (line.contains("query redwing message out using below query parameter")) {
+                    updatedLines.add(line.replace("query redwing message out using below query parameter", "fetch redwing message"));
+                    isDataTable = true;
+                    continue;
+                }
+                if (isDataTable) {
+                    if (line.trim().startsWith("|")) {
+                        // Collect data table rows
+                        String[] columns = line.trim().split("\\|");
+                        for (int i = 0; i < columns.length; i++) {
+                            columns[i] = columns[i].trim();
+                        }
+                        dataTable.add(columns);
+                        continue;
+                    } else {
+                        // End of data table, convert to horizontal
+                        if (!dataTable.isEmpty()) {
+                            List<String> transformedTable = transformDataTable(dataTable);
+                            updatedLines.addAll(transformedTable);
+                            dataTable.clear();
+                        }
+                        isDataTable = false;
+                    }
+                }
+                
+                // Add other lines as-is
+                updatedLines.add(line);
+            }
+            
+            // Write updated content to new file
+            Files.write(Paths.get(outputFilePath), updatedLines);
+            System.out.println("Feature file converted successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // Method to read new steps from CSV for Rule 3
+    private static List<String> readNewSteps(String csvFilePath) throws IOException {
+        List<String> newSteps = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                newSteps.add(line);
+            }
+        }
+        return newSteps;
+    }
+    
+    // Method to transform vertical data table to horizontal for Rule 4
+    private static List<String> transformDataTable(List<String[]> dataTable) {
+        List<String> transformedTable = new ArrayList<>();
+        
+        // Get Headers and Values
+        List<String> headers = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        
+        for (String[] row : dataTable) {
+            if (row.length > 1) {
+                headers.add(row[1]);
+                values.add(row[2]);
+            }
+        }
+        
+        // Create Horizontal Table
+        StringBuilder headerRow = new StringBuilder("| Key   | ");
+        StringBuilder valueRow = new StringBuilder("| Value | ");
+        
+        for (String header : headers) {
+            headerRow.append(header).append(" | ");
+        }
+        for (String value : values) {
+            valueRow.append(value).append(" | ");
+        }
+        
+        transformedTable.add(headerRow.toString());
+        transformedTable.add(valueRow.toString());
+        
+        return transformedTable;
+    }
+}
