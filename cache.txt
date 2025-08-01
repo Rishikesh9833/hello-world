@@ -1,0 +1,163 @@
+Absolutely, Rishikesh! Here’s a clean, professional-grade implementation of a context-aware caching system with:
+
+• ✅ Delta detection
+• ✅ Cache-Aside strategy
+• ✅ TTL expiration
+• ✅ LRU eviction
+• ✅ Monitoring stats
+• ✅ Redis-ready structure (optional toggle)
+
+
+---
+
+🧱 `cache_manager.py` — Plug-and-Play Cache System
+
+import json
+from datetime import datetime, timedelta
+from collections import OrderedDict
+
+# Optional Redis integration
+USE_REDIS = False
+try:
+    import redis
+    redis_client = redis.Redis()
+except ImportError:
+    redis_client = None
+
+# In-memory fallback cache
+MAX_CACHE_SIZE = 100
+query_cache_map = OrderedDict()
+cache_stats = {"hits": 0, "misses": 0, "partials": 0}
+
+
+def generate_context_key(filters):
+    if filters.get("product"):
+        return f"product:{filters['product']}"
+    elif filters.get("cell") and filters.get("receiver"):
+        return f"cell:{filters['cell']}|receiver:{filters['receiver']}"
+    return "generic"
+
+
+def get_cache(context_key):
+    if USE_REDIS and redis_client:
+        raw = redis_client.get(context_key)
+        return json.loads(raw) if raw else None
+    return query_cache_map.get(context_key)
+
+
+def set_cache(context_key, entry):
+    entry["expires_at"] = (datetime.now() + timedelta(hours=24)).isoformat()
+
+    if USE_REDIS and redis_client:
+        redis_client.set(context_key, json.dumps(entry), ex=86400)
+    else:
+        if context_key in query_cache_map:
+            query_cache_map.move_to_end(context_key)
+        query_cache_map[context_key] = entry
+        if len(query_cache_map) > MAX_CACHE_SIZE:
+            query_cache_map.popitem(last=False)
+
+
+def check_context_cache(filters):
+    context_key = generate_context_key(filters)
+    cached = get_cache(context_key)
+
+    if not cached:
+        cache_stats["misses"] += 1
+        return None, None
+
+    if datetime.fromisoformat(cached["expires_at"]) < datetime.now():
+        if not USE_REDIS:
+            query_cache_map.pop(context_key, None)
+        cache_stats["misses"] += 1
+        return None, None
+
+    cached_from, cached_to = cached["date_range"]
+    new_from, new_to = filters["from_date"], filters["to_date"]
+
+    delta_ranges = []
+    if new_from < cached_from:
+        delta_ranges.append((new_from, cached_from))
+    if new_to > cached_to:
+        delta_ranges.append((cached_to, new_to))
+
+    if not delta_ranges:
+        cache_stats["hits"] += 1
+    else:
+        cache_stats["partials"] += 1
+
+    return cached["task_id"], delta_ranges
+
+
+def update_context_cache(filters, task_id):
+    context_key = generate_context_key(filters)
+    set_cache(context_key, {
+        "date_range": (filters["from_date"], filters["to_date"]),
+        "task_id": task_id
+    })
+
+
+def get_cache_stats():
+    return cache_stats
+
+
+---
+
+🛠️ Example Usage in `/fetch_trades`
+
+from cache_manager import (
+    check_context_cache,
+    update_context_cache,
+    get_cache_stats
+)
+
+def fetch_trades(request_data):
+    filters = {
+        "from_date": request_data["from_date"],
+        "to_date": request_data["to_date"],
+        "product": request_data.get("product"),
+        "cell": request_data.get("cell"),
+        "receiver": request_data.get("receiver")
+    }
+
+    task_id, delta_ranges = check_context_cache(filters)
+
+    if not task_id:
+        task_id = run_duckdb_query(filters["from_date"], filters["to_date"], filters)
+        update_context_cache(filters, task_id)
+        return get_results(task_id)
+
+    if not delta_ranges:
+        return get_results(task_id)
+
+    for start, end in delta_ranges:
+        run_duckdb_query(start, end, filters)
+
+    task_id = merge_results(filters)
+    update_context_cache(filters, task_id)
+    return get_results(task_id)
+
+
+---
+
+📊 Optional: Cache Stats Endpoint
+
+@app.route("/cache_stats")
+def cache_stats():
+    return get_cache_stats()
+
+
+---
+
+✅ Benefits
+
+• 🔥 Fast delta fetches
+• 🧠 Smart context-aware caching
+• 🧹 Auto-expiry + LRU eviction
+• 📈 Real-time monitoring
+• 🧩 Redis-ready for scaling
+
+
+---
+
+Would you like me to help you write the `merge_results()` function or integrate this into your existing Flask or FastAPI app structure?
