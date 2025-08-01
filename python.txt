@@ -1,0 +1,135 @@
+Perfect — you’re describing a smart, cache-aware `/fetch_trades` endpoint that:
+
+• ✅ Builds a MongoDB aggregation pipeline from complex filters
+• ✅ Calculates `day_of_year` from date range
+• ✅ Retrieves trade IDs and downstream messages
+• ✅ Streams results in chunks
+• ✅ Caches results in DuckDB per query signature
+• ✅ Avoids re-fetching if same query is repeated
+• ✅ Fetches only the delta if date range changes
+
+
+Let’s design this step-by-step.
+
+---
+
+🧠 Step 1: Define Query Signature for Caching
+
+We’ll create a unique hash for each query based on filters:
+
+import hashlib
+import json
+
+def generate_query_signature(filters):
+    # Normalize and hash filters
+    relevant_keys = ["product", "cell", "receiver", "attribute", "relatedDispatcher", "relatedAttributes"]
+    base_filters = {k: filters.get(k) for k in relevant_keys}
+    base_filters["date_range"] = (filters["from_date"], filters["to_date"])
+    serialized = json.dumps(base_filters, sort_keys=True)
+    return hashlib.md5(serialized.encode()).hexdigest()
+
+
+---
+
+🧊 Step 2: Cache Lookup and Delta Detection
+
+query_cache_map = {}  # signature → {"task_id": ..., "date_range": (from, to)}
+
+def check_cache(signature, filters):
+    cached = query_cache_map.get(signature)
+    if not cached:
+        return None, None
+
+    cached_from, cached_to = cached["date_range"]
+    new_from, new_to = filters["from_date"], filters["to_date"]
+
+    # If date range is fully covered, use cache
+    if new_from >= cached_from and new_to <= cached_to:
+        return cached["task_id"], None
+
+    # If partial overlap, compute delta
+    delta_range = []
+    if new_from < cached_from:
+        delta_range.append((new_from, cached_from))
+    if new_to > cached_to:
+        delta_range.append((cached_to, new_to))
+
+    return cached["task_id"], delta_range
+
+
+---
+
+🚀 Step 3: Enhanced `/fetch_trades` Endpoint
+
+@app.route("/api/fetch_trades", methods=["POST"])
+def fetch_trades():
+    filters = request.json.get("filters", {})
+    signature = generate_query_signature(filters)
+
+    cached_task_id, delta_ranges = check_cache(signature, filters)
+
+    if cached_task_id and not delta_ranges:
+        # Full cache hit
+        trades = duckdb_manager.query_trades(cached_task_id, source="input")
+        return jsonify({"trades": trades, "cached": True})
+
+    # Create new DuckDB task
+    task_id = duckdb_manager.create_task_db()
+    query_cache_map[signature] = {"task_id": task_id, "date_range": (filters["from_date"], filters["to_date"])}
+
+    # Fetch full or delta data
+    all_trades = []
+    ranges_to_fetch = delta_ranges or [(filters["from_date"], filters["to_date"])]
+
+    for from_date, to_date in ranges_to_fetch:
+        filters["from_date"] = from_date
+        filters["to_date"] = to_date
+        pipeline = build_pipeline(filters)
+        cursor = mongo_collection.aggregate(pipeline, allowDiskUse=True)
+
+        buffer = []
+        for doc in cursor:
+            buffer.append(doc)
+            if len(buffer) >= 1000:
+                duckdb_manager.insert_trades(task_id, buffer, source="input")
+                all_trades.extend(buffer)
+                buffer = []
+
+        if buffer:
+            duckdb_manager.insert_trades(task_id, buffer, source="input")
+            all_trades.extend(buffer)
+
+    # Fetch downstream messages for trade_ids
+    trade_ids = [t.get("trade_id") for t in all_trades if t.get("trade_id")]
+    downstream_msgs = fetch_downstream_messages(trade_ids)
+    duckdb_manager.insert_trades(task_id, downstream_msgs, source="downstream")
+
+    return jsonify({"trades": all_trades, "cached": False})
+
+
+---
+
+🧪 Helper: `fetch_downstream_messages`
+
+def fetch_downstream_messages(trade_ids):
+    if not trade_ids:
+        return []
+    return list(mongo_collection.find({"trade_id": {"$in": trade_ids}}))
+
+
+---
+
+✅ Benefits of This Design
+
+Feature	Benefit	
+Query signature caching	Avoids redundant MongoDB calls	
+Delta fetch on date change	Only fetches what’s missing	
+DuckDB per-task cache	Fast access, shared across stages	
+Downstream fetch integration	One unified pipeline	
+Chunked streaming	UI stays responsive	
+Cache-aware logic	Smart reuse of previous results	
+
+
+---
+
+Would you like help integrating this into your React frontend next — maybe with a progress bar and cache indicator?
