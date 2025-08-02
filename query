@@ -1,0 +1,81 @@
+[
+  // ✅ Filter early with indexed fields first (dayOfYear, cell)
+  {
+    $match: {
+      dayOfYear: { $in: [213] },
+      cell: "vet-processing-coacs"
+    }
+  },
+
+  // ✅ Further filter with unindexed fields
+  {
+    $match: {
+      receiverName: { $in: ["coacsOutboundToSwift-Rec"] },
+      dispatcherName: { $exists: false },
+      sendersReference: { $exists: false }
+    }
+  },
+
+  // ✅ Optional chunking filter (range-based, avoids $skip)
+  {
+    $match: {
+      availableAt: { $gte: ISODate("2025-07-27T00:00:00Z") }, // or after last availableAt
+      _id: { $gt: ObjectId("64c6d91b7b0be9e2ad0a1234") }       // optional for resume from last chunk
+    }
+  },
+
+  // ✅ Sort for stable paging
+  {
+    $sort: { availableAt: 1, _id: 1 }
+  },
+
+  // ✅ Chunk limit
+  {
+    $limit: 1000
+  },
+
+  // ✅ Efficient $lookup with limited pipeline
+  {
+    $lookup: {
+      from: "Message",
+      let: { correlationId: "$correlationId" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$correlationId", "$$correlationId"] },
+                { $and: [
+                  { $exists: ["$sendersReference", true] },
+                  { $ne: ["$sendersReference", ""] }
+                ]}
+              ]
+            }
+          }
+        },
+        { $limit: 1 } // important to avoid loading huge array
+      ],
+      as: "related_docs"
+    }
+  },
+
+  // ✅ Unwind for flattening related_docs
+  {
+    $unwind: {
+      path: "$related_docs",
+      preserveNullAndEmptyArrays: true
+    }
+  },
+
+  // ✅ Projection
+  {
+    $project: {
+      correlationId: 1,
+      receiverName: 1,
+      availableAt: 1,
+      attributes: 1,
+      payload: 1,
+      sendersReference: "$related_docs.sendersReference"
+    }
+  }
+]
