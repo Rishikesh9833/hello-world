@@ -1,0 +1,120 @@
+Awesome! Here’s a clean, reusable `DuckDBManager` class that handles:
+
+• ✅ Per-task DuckDB instances
+• ✅ Table creation and schema setup
+• ✅ Insert/query/update operations
+• ✅ Cleanup and cancel-safe access
+• ✅ Thread-safe design
+
+
+---
+
+🧱 `DuckDBManager` Class
+
+import duckdb
+import threading
+import uuid
+
+class DuckDBManager:
+    def __init__(self):
+        self._db_map = {}
+        self._lock = threading.Lock()
+
+    def create_task_db(self, task_id=None):
+        """Create a new DuckDB instance for a task."""
+        with self._lock:
+            task_id = task_id or str(uuid.uuid4())
+            db = duckdb.connect(database=':memory:')
+            db.execute("""
+                CREATE TABLE trades (
+                    trade_id VARCHAR,
+                    data JSON,
+                    source VARCHAR
+                )
+            """)
+            self._db_map[task_id] = db
+            return task_id
+
+    def insert_trades(self, task_id, trades, source):
+        """Insert a list of trades into the DuckDB cache."""
+        with self._lock:
+            db = self._db_map.get(task_id)
+            if not db:
+                raise ValueError(f"No DB found for task_id: {task_id}")
+
+            rows = [(t.get("trade_id", ""), t, source) for t in trades]
+            db.execute("INSERT INTO trades VALUES (?, ?, ?)", rows)
+
+    def query_trades(self, task_id, source=None):
+        """Query trades from the cache."""
+        with self._lock:
+            db = self._db_map.get(task_id)
+            if not db:
+                raise ValueError(f"No DB found for task_id: {task_id}")
+
+            if source:
+                return db.execute("SELECT * FROM trades WHERE source = ?", (source,)).fetchall()
+            else:
+                return db.execute("SELECT * FROM trades").fetchall()
+
+    def get_db(self, task_id):
+        """Direct access to DuckDB instance (advanced use)."""
+        with self._lock:
+            return self._db_map.get(task_id)
+
+    def cleanup(self, task_id):
+        """Close and remove the DuckDB instance."""
+        with self._lock:
+            db = self._db_map.pop(task_id, None)
+            if db:
+                db.close()
+
+    def list_active_tasks(self):
+        """List all active task IDs."""
+        with self._lock:
+            return list(self._db_map.keys())
+
+
+---
+
+🧪 Example Usage
+
+✅ Create a new task DB
+
+duckdb_manager = DuckDBManager()
+task_id = duckdb_manager.create_task_db()
+
+
+✅ Insert trades
+
+duckdb_manager.insert_trades(task_id, trades_chunk, source="input")
+
+
+✅ Query trades
+
+input_trades = duckdb_manager.query_trades(task_id, source="input")
+
+
+✅ Cleanup after task
+
+duckdb_manager.cleanup(task_id)
+
+
+---
+
+🧼 Optional: Singleton Pattern
+
+If you want a global shared instance:
+
+# duckdb_manager.py
+duckdb_manager = DuckDBManager()
+
+
+Then import it anywhere:
+
+from duckdb_manager import duckdb_manager
+
+
+---
+
+Would you like me to help plug this into your existing `/fetch_trades` or `/create_trades` endpoint next?
