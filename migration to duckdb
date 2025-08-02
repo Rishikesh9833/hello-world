@@ -1,0 +1,70 @@
+Perfect — if you’re migrating from SQLite and want DuckDB to infer column types based on the actual data (rather than relying on SQLite’s often loose typing), the best approach is to use Pandas DataFrames as an intermediary. DuckDB will infer column types from the DataFrame’s dtypes, which are more precise.
+
+---
+
+🧠 Smart Table Creation in DuckDB Based on Data
+
+✅ Recommended Approach: Use Pandas for Type Inference
+
+Here’s how to ensure DuckDB creates columns with correct types:
+
+import sqlite3
+import duckdb
+import pandas as pd
+
+# Connect to SQLite and DuckDB
+sqlite_conn = sqlite3.connect('old_database.sqlite')
+duck_conn = duckdb.connect('new_database.duckdb')
+
+# Get table names
+cursor = sqlite_conn.cursor()
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+tables = cursor.fetchall()
+
+for table_name in tables:
+    table = table_name[0]
+    
+    # Load data into Pandas
+    df = pd.read_sql_query(f"SELECT * FROM {table}", sqlite_conn)
+    
+    # DuckDB infers types from DataFrame
+    duck_conn.register('df_view', df)
+    duck_conn.execute(f"CREATE TABLE {table} AS SELECT * FROM df_view")
+    duck_conn.unregister('df_view')
+
+
+---
+
+🔍 Why This Works Well
+
+• Pandas uses NumPy dtypes (`int64`, `float64`, `datetime64`, `object`, etc.)
+• DuckDB maps these to its internal types (`INTEGER`, `DOUBLE`, `TIMESTAMP`, `VARCHAR`, etc.)
+• This avoids issues like everything becoming `TEXT` in SQLite
+
+
+---
+
+🧪 Optional: Inspect Inferred Schema
+
+You can verify the schema after creation:
+
+duck_conn.execute(f"DESCRIBE {table}").fetchdf()
+
+
+---
+
+🧰 Bonus: Handle Empty Tables Gracefully
+
+If a table is empty, DuckDB can’t infer types. You can skip or handle it like this:
+
+if not df.empty:
+    duck_conn.register('df_view', df)
+    duck_conn.execute(f"CREATE TABLE {table} AS SELECT * FROM df_view")
+    duck_conn.unregister('df_view')
+else:
+    print(f"Skipping empty table: {table}")
+
+
+---
+
+Would you like to add automatic type validation or logging for each table’s schema during migration? I can help you build a reusable migration utility for this.
