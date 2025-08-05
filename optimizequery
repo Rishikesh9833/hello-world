@@ -1,0 +1,59 @@
+Absolutely, Rishikesh. Here’s a modular MongoDB utility in Python that analyzes your aggregation pipeline using `.explain("executionStats")`, extracts key performance metrics, and highlights potential bottlenecks.
+
+---
+
+🧪 MongoDB Aggregation Analyzer (Python)
+
+from pymongo import MongoClient
+import pprint
+
+def analyze_pipeline(db_name, collection_name, pipeline):
+    client = MongoClient("mongodb://localhost:27017")  # Adjust URI as needed
+    db = client[db_name]
+    collection = db[collection_name]
+
+    # Run explain with executionStats
+    explain_result = collection.aggregate(pipeline, explain=True)
+    stats = explain_result.get("stages", [])
+
+    print("\n🔍 Aggregation Pipeline Analysis:\n")
+    for i, stage in enumerate(stats):
+        print(f"Stage {i+1}: {list(stage.keys())[0]}")
+        pprint.pprint(stage)
+
+    # Optional: summarize key metrics
+    print("\n📊 Summary:")
+    if "executionStats" in explain_result:
+        exec_stats = explain_result["executionStats"]
+        print(f"Total docs examined: {exec_stats.get('totalDocsExamined')}")
+        print(f"Total keys examined: {exec_stats.get('totalKeysExamined')}")
+        print(f"Execution time (ms): {exec_stats.get('executionTimeMillis')}")
+
+    print("\n✅ Suggestions:")
+    if exec_stats.get("totalDocsExamined", 0) > 10000:
+        print("- Consider adding or refining indexes to reduce document scans.")
+    if exec_stats.get("executionTimeMillis", 0) > 500:
+        print("- Pipeline may benefit from restructuring or pre-aggregation.")
+    if any("COLLSCAN" in str(stage) for stage in stats):
+        print("- Collection scan detected. Index missing or not used.")
+
+    client.close()
+
+
+---
+
+🧰 How to Use
+
+pipeline = [
+    {"$match": {"status": "active"}},
+    {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+    {"$sort": {"count": -1}},
+    {"$limit": 10}
+]
+
+analyze_pipeline("your_db", "your_collection", pipeline)
+
+
+---
+
+This gives you a clear breakdown of each stage, execution stats, and actionable suggestions. Want me to help you wrap this into a Flask endpoint or integrate it with your DuckDB caching logic?
